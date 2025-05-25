@@ -13,6 +13,12 @@ private Long id;
 
     private String quantity;
     private String name;
+//    private int availableQuantity;
+    private String unit;
+
+    @ManyToOne
+    @JoinColumn(name = "ingredient_stock_id")
+    private IngredientStock ingredientStock;
 
     @ManyToOne
     @JoinColumn(name = "dish_id")

@@ -64,10 +64,7 @@ public class UserService {
         userRepository.delete(user);
     }
 
-    /**
-     * Отримання користувача за іменем користувача
-     * @return користувач
-     */
+
     public UserDetailsService userDetailsService() {
         return this::getByUsername;
     }

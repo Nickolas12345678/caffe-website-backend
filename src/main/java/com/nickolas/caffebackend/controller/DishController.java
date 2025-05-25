@@ -33,13 +33,53 @@ public class DishController {
         return ResponseEntity.ok(dishes);
     }
 
-    @GetMapping("/category/{categoryId}")
-    public ResponseEntity<Page<Dish>> getDishesByCategory(@PathVariable("categoryId") Long categoryId,
-                                                          @RequestParam(name = "page", defaultValue = "0") int page,
-                                                          @RequestParam(name = "size", defaultValue = "10") int size) {
-        Page<Dish> dishes = dishService.getDishesByCategory(categoryId, PageRequest.of(page, size));
-        return ResponseEntity.ok(new PageImpl<>(dishes.getContent(), PageRequest.of(page, size), dishes.getTotalElements()));
+
+//@GetMapping("/category/{categoryId}")
+//public ResponseEntity<Page<Dish>> getDishesByCategory(
+//        @PathVariable("categoryId") Long categoryId,
+//        @RequestParam(name = "page", defaultValue = "0") int page,
+//        @RequestParam(name = "size", defaultValue = "10") int size,
+//        @RequestParam(name = "minPrice", required = false) Double minPrice,
+//        @RequestParam(name = "maxPrice", required = false) Double maxPrice,
+//        @RequestParam(name = "sort", required = false, defaultValue = "asc") String sortOrder) {
+//
+//    PageRequest pageRequest = PageRequest.of(page, size);
+//    Page<Dish> dishes = dishService.getDishesByCategory(categoryId, pageRequest, minPrice, maxPrice, sortOrder);
+//
+//    return ResponseEntity.ok(dishes);
+//}
+@GetMapping("/category/{categoryId}")
+public ResponseEntity<Page<Dish>> getDishesByCategory(
+        @PathVariable("categoryId") Long categoryId,
+        @RequestParam(name = "page", defaultValue = "0") int page,
+        @RequestParam(name = "size", defaultValue = "10") int size,
+        @RequestParam(name = "minPrice", required = false) Double minPrice,
+        @RequestParam(name = "maxPrice", required = false) Double maxPrice,
+        @RequestParam(name = "sort", required = false, defaultValue = "") String sortOrder,  // Параметр для сортування
+        @RequestParam(name = "name", required = false) String name) {
+
+    PageRequest pageRequest = PageRequest.of(page, size);
+
+    // Якщо сортування не задано, не застосовуємо сортування
+    if (sortOrder.isEmpty()) {
+        sortOrder = null;
     }
+
+    Page<Dish> dishes;
+
+    // Якщо є фільтр по ціні, застосовуємо його
+    if (minPrice != null || maxPrice != null) {
+        dishes = dishService.getDishesByCategoryWithPriceFilter(categoryId, pageRequest, minPrice, maxPrice, sortOrder, name);
+    } else {
+        // Якщо немає фільтру по ціні, просто повертаємо страви без фільтрації за ціною
+        dishes = dishService.getDishesByCategory(categoryId, pageRequest, sortOrder, name);
+    }
+
+    return ResponseEntity.ok(dishes);
+}
+
+
+
 
     @GetMapping("/{id}")
     public ResponseEntity<Dish> getDishById(@PathVariable("id") Long id) {
@@ -73,4 +113,3 @@ public class DishController {
         }
     }
 }
-

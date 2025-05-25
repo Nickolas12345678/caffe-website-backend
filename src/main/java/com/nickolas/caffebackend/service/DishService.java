@@ -3,8 +3,11 @@ package com.nickolas.caffebackend.service;
 import com.nickolas.caffebackend.model.Category;
 import com.nickolas.caffebackend.model.Dish;
 import com.nickolas.caffebackend.model.Ingredient;
+import com.nickolas.caffebackend.model.IngredientStock;
 import com.nickolas.caffebackend.repository.CategoryRepository;
 import com.nickolas.caffebackend.repository.DishRepository;
+import com.nickolas.caffebackend.repository.IngredientRepository;
+import com.nickolas.caffebackend.repository.IngredientStockRepository;
 import com.nickolas.caffebackend.request.DishCreateRequest;
 import com.nickolas.caffebackend.request.DishUpdateRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,11 +22,15 @@ import java.util.Optional;
 public class DishService {
 private final DishRepository dishRepository;
     private final CategoryRepository categoryRepository;
+    private final IngredientStockRepository ingredientStockRepository;
+    private IngredientRepository ingredientRepository;
 
     @Autowired
-    public DishService(DishRepository dishRepository, CategoryRepository categoryRepository) {
+    public DishService(DishRepository dishRepository, CategoryRepository categoryRepository, IngredientRepository ingredientRepository, IngredientStockRepository ingredientStockRepository) {
         this.dishRepository = dishRepository;
         this.categoryRepository = categoryRepository;
+        this.ingredientStockRepository = ingredientStockRepository;
+        this.ingredientRepository = ingredientRepository;
     }
 
     public List<Dish> getAllDishes() {
@@ -34,13 +41,51 @@ private final DishRepository dishRepository;
         return dishRepository.findAll(pageRequest);
     }
 
-    public Page<Dish> getDishesByCategory(Long categoryId, PageRequest pageRequest) {
-        return dishRepository.findByCategoryId(categoryId, pageRequest);
+
+//public Page<Dish> getDishesByCategory(Long categoryId, PageRequest pageRequest, Double minPrice, Double maxPrice, String sortOrder) {
+//    if (minPrice != null || maxPrice != null) {
+//        return dishRepository.findByCategoryIdAndPriceBetweenWithSort(categoryId, minPrice, maxPrice, sortOrder, pageRequest);
+//    } else {
+//        return dishRepository.findByCategoryId(categoryId, pageRequest);
+//    }
+//}
+// Оновлена версія для збереження сортування та фільтрування
+public Page<Dish> getDishesByCategory(Long categoryId, PageRequest pageRequest, String sortOrder, String name) {
+    if (sortOrder == null || sortOrder.isEmpty()) {
+        // Якщо сортування не вказано, сортуємо за замовчуванням, якщо необхідно
+        if (name != null && !name.isEmpty()) {
+            return dishRepository.findByCategoryIdAndNameContainingIgnoreCase(categoryId, name, pageRequest);
+        } else {
+            return dishRepository.findByCategoryId(categoryId, pageRequest);
+        }
+    } else {
+        // Якщо сортування вказано
+        return dishRepository.findByCategoryIdAndPriceBetweenWithSort(categoryId, null, null, sortOrder, pageRequest);
     }
+}
+
+    // Оновлене з фільтром по ціні
+    public Page<Dish> getDishesByCategoryWithPriceFilter(Long categoryId, PageRequest pageRequest, Double minPrice, Double maxPrice, String sortOrder, String name) {
+        if (sortOrder == null || sortOrder.isEmpty()) {
+            // Якщо сортування не вказано, сортуємо за замовчуванням
+            if (name != null && !name.isEmpty()) {
+                return dishRepository.findByCategoryIdAndNameContainingIgnoreCase(categoryId, name, pageRequest);
+            } else {
+                return dishRepository.findByCategoryIdAndPriceBetween(categoryId, minPrice, maxPrice, pageRequest);
+            }
+        } else {
+            // Якщо сортування вказано
+            return dishRepository.findByCategoryIdAndPriceBetweenWithSort(categoryId, minPrice, maxPrice, sortOrder, pageRequest);
+        }
+    }
+
+
+
 
     public Optional<Dish> getDishById(Long id) {
         return dishRepository.findById(id);
     }
+
 
     public Dish createDish(DishCreateRequest request) {
         Dish dish = new Dish();
@@ -52,17 +97,31 @@ private final DishRepository dishRepository;
         dish.setPreparationTime(request.getPreparationTime());
 
         if (request.getIngredients() != null) {
-            List<Ingredient> ingredients = request.getIngredients().stream()
-                    .map(ing -> {
-                        Ingredient ingredient = new Ingredient();
-                        ingredient.setName(ing.getName());
-                        ingredient.setQuantity(ing.getQuantity());
-                        ingredient.setDish(dish);
-                        return ingredient;
-                    })
-                    .toList();
-            dish.setIngredients(ingredients);
+            List<Ingredient> usedIngredients = request.getIngredients().stream().map(reqIng -> {
+                IngredientStock stock = ingredientStockRepository.findByNameIgnoreCase(reqIng.getName())
+                        .orElseThrow(() -> new RuntimeException("Інгредієнт '" + reqIng.getName() + "' не знайдено на складі"));
+
+                int quantityToUse = parseQuantity(reqIng.getQuantity());
+                if (stock.getAvailableQuantity() < quantityToUse) {
+                    throw new RuntimeException("Недостатньо інгредієнта '" + reqIng.getName() + "'. Доступно: "
+                            + stock.getAvailableQuantity() + ", потрібно: " + quantityToUse);
+                }
+
+                stock.setAvailableQuantity(stock.getAvailableQuantity() - quantityToUse);
+                ingredientStockRepository.save(stock);
+
+                Ingredient newIngredient = new Ingredient();
+                newIngredient.setName(reqIng.getName());
+                newIngredient.setQuantity(reqIng.getQuantity());
+                newIngredient.setUnit(stock.getUnit());
+                newIngredient.setDish(dish);
+                return newIngredient;
+            }).toList();
+
+            dish.setIngredients(usedIngredients);
         }
+
+
 
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
@@ -72,6 +131,9 @@ private final DishRepository dishRepository;
 
         return dishRepository.save(dish);
     }
+
+
+
 
     public Dish updateDish(Long id, DishUpdateRequest request) {
         return dishRepository.findById(id).map(existingDish -> {
@@ -86,7 +148,6 @@ private final DishRepository dishRepository;
                     .orElseThrow(() -> new RuntimeException("Category not found"));
             existingDish.setCategory(category);
 
-            // Update ingredients
             existingDish.getIngredients().clear();
             if (request.getIngredients() != null) {
                 List<Ingredient> updatedIngredients = request.getIngredients().stream()
@@ -95,15 +156,29 @@ private final DishRepository dishRepository;
                             ingredient.setName(ing.getName());
                             ingredient.setQuantity(ing.getQuantity());
                             ingredient.setDish(existingDish);
+                            ingredientStockRepository.findByNameIgnoreCase(ing.getName())
+                                    .ifPresent(stock -> ingredient.setUnit(stock.getUnit()));
                             return ingredient;
                         })
                         .toList();
                 existingDish.getIngredients().addAll(updatedIngredients);
             }
 
+
+
             return dishRepository.save(existingDish);
         }).orElseThrow(() -> new RuntimeException("Dish not found"));
     }
+
+
+    private int parseQuantity(String quantityStr) {
+        try {
+            return Integer.parseInt(quantityStr.replaceAll("[^0-9]", ""));
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Неправильний формат кількості: " + quantityStr);
+        }
+    }
+
 
     public void deleteDish(Long id) {
         if (dishRepository.existsById(id)) {
