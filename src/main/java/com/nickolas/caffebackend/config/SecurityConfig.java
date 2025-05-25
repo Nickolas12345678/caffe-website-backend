@@ -31,7 +31,6 @@ import java.util.List;
 public class SecurityConfig {
     private final JwtTokenValidator jwtAuthenticationFilter;
 
-    // Тут більше немає прямої залежності від AuthService чи UserService
     @Autowired
     public SecurityConfig(JwtTokenValidator jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
