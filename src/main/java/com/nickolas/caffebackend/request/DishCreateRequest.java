@@ -4,6 +4,9 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * DTO для створення нової страви.
+ */
 @Data
 public class DishCreateRequest {
     private String name;

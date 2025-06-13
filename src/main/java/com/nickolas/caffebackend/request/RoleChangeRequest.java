@@ -6,6 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.nickolas.caffebackend.domain.Role;
 
+/**
+ * DTO для зміни ролі користувача.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -21,6 +21,10 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
+/**
+ * Сервіс для обробки аутентифікації та реєстрації користувачів.
+ * Також реалізує {@link UserDetailsService} для інтеграції зі Spring Security.
+ */
 @Service
 public class AuthService implements UserDetailsService {
     private final UserRepository userRepository;
@@ -28,6 +32,14 @@ public class AuthService implements UserDetailsService {
     private final JwtProvider jwtProvider;
     private final AuthenticationManager authenticationManager;
 
+    /**
+     * Конструктор сервісу аутентифікації.
+     *
+     * @param userRepository репозиторій користувачів
+     * @param passwordEncoder енкодер паролів
+     * @param jwtProvider JWT-генератор
+     * @param authenticationManager менеджер аутентифікації
+     */
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtProvider jwtProvider,  AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -36,6 +48,13 @@ public class AuthService implements UserDetailsService {
     }
 
 
+    /**
+     * Реєструє нового користувача.
+     *
+     * @param signupRequest запит з даними для реєстрації
+     * @return створений користувач
+     * @throws UserException якщо користувач з таким email вже існує
+     */
     public User registerUser(SignupRequest signupRequest) {
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
             throw new UserException("Користувач з таким email вже існує!");
@@ -49,6 +68,12 @@ public class AuthService implements UserDetailsService {
     }
 
 
+    /**
+     * Генерує JWT токен для користувача.
+     *
+     * @param user користувач, для якого потрібно створити токен
+     * @return JWT токен
+     */
     public String generateToken(User user) {
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 user.getEmail(), null, List.of(new SimpleGrantedAuthority( user.getRole().name()))
@@ -57,6 +82,13 @@ public class AuthService implements UserDetailsService {
         return jwtProvider.generateToken(authentication);
     }
 
+    /**
+     * Аутентифікує користувача та повертає відповідь з JWT токеном.
+     *
+     * @param signinRequest запит з email та паролем
+     * @return відповідь з JWT токеном та роллю
+     * @throws RuntimeException або UserException у разі невдалого входу
+     */
     public AuthResponse authenticateUser(SigninRequest signinRequest) {
         User user = userRepository.findByEmail(signinRequest.getEmail())
                 .orElseThrow(() -> new RuntimeException("Користувача з таким email не існує"));
@@ -75,6 +107,14 @@ public class AuthService implements UserDetailsService {
         return authResponse;
     }
 
+    /**
+     * Завантажує користувача за email (username).
+     * Використовується для авторизації Spring Security.
+     *
+     * @param username email користувача
+     * @return {@link UserDetails} об'єкт
+     * @throws UsernameNotFoundException якщо користувач не знайдений
+     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(username)

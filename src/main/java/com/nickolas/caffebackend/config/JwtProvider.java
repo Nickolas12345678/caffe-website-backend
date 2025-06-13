@@ -12,6 +12,10 @@ import java.util.Date;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Сервіс для генерації та розбору JWT токенів.
+ * Зберігає email користувача та ролі у claims.
+ */
 @Component
 public class JwtProvider {
     private final SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());

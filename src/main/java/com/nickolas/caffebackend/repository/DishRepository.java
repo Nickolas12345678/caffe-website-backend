@@ -11,10 +11,21 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * Репозиторій для роботи зі стравами {@link com.nickolas.caffebackend.model.Dish}.
+ * Підтримує пошук за категорією, ціною, назвою та сортування.
+ */
 @Repository
 public interface DishRepository extends JpaRepository<Dish, Long> {
+
+    /**
+     * Знаходить сторінку страв для вказаної категорії.
+     */
     Page<Dish> findByCategoryId(Long categoryId, Pageable pageable);
 
+    /**
+     * Фільтрує страви за категорією та діапазоном цін.
+     */
     @Query("SELECT d FROM Dish d " +
             "WHERE d.category.id = :categoryId " +
             "AND (:minPrice IS NULL OR d.price >= :minPrice) " +
@@ -27,6 +38,9 @@ public interface DishRepository extends JpaRepository<Dish, Long> {
             @Param("maxPrice") Double maxPrice,
             Pageable pageable);
 
+    /**
+     * Фільтрує страви за категорією, діапазоном цін та сортує по ціні.
+     */
     @Query("SELECT d FROM Dish d " +
             "WHERE d.category.id = :categoryId " +
             "AND (:minPrice IS NULL OR d.price >= :minPrice) " +
@@ -39,6 +53,10 @@ public interface DishRepository extends JpaRepository<Dish, Long> {
             @Param("maxPrice") Double maxPrice,
             @Param("sortOrder") String sortOrder,
             Pageable pageable);
+
+    /**
+     * Пошук страв по частковому збігу назви (ігноруючи регістр).
+     */
     Page<Dish> findByCategoryIdAndNameContainingIgnoreCase(
             @Param("categoryId") Long categoryId,
             @Param("name") String name,

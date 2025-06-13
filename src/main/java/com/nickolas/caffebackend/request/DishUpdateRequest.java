@@ -6,6 +6,9 @@ import lombok.Getter;
 
 import java.util.List;
 
+/**
+ * DTO для оновлення страви.
+ */
 @Data
 @Getter
 public class DishUpdateRequest {

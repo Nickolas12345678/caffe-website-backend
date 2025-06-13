@@ -20,6 +20,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Контролер для обробки запитів, пов’язаних з автентифікацією користувачів.
+ * Містить ендпоінти для реєстрації та входу в систему.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth")
@@ -27,6 +31,14 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
 
+    /**
+     * Обробляє запит на реєстрацію нового користувача.
+     *
+     * @param signupRequest Об'єкт, що містить дані для реєстрації (логін, пароль, тощо)
+     * @param bindingResult Результати валідації вхідного запиту
+     * @return {@link ResponseEntity} з JWT-токеном та роллю користувача у разі успішної реєстрації,
+     * або повідомлення про помилки валідації/реєстрації
+     */
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signupRequest, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -53,6 +65,13 @@ public class AuthController {
     }
 
 
+    /**
+     * Обробляє запит на вхід до системи.
+     *
+     * @param signinRequest Об'єкт, що містить дані для входу (логін, пароль)
+     * @return {@link ResponseEntity} з JWT-токеном у разі успішної автентифікації,
+     * або повідомленням про помилку у разі невдалої спроби входу
+     */
     @PostMapping("/signin")
     public ResponseEntity<AuthResponse> signin(@RequestBody SigninRequest signinRequest) {
 

@@ -2,6 +2,9 @@ package com.nickolas.caffebackend.request;
 
 import lombok.Data;
 
+/**
+ * DTO для створення замовлення.
+ */
 @Data
 public class CreateOrderRequest {
     private String phoneNumber;

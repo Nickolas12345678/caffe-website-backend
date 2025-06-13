@@ -18,6 +18,11 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Сервіс для керування стравами.
+ * Забезпечує операції створення, оновлення, видалення, пошуку та фільтрації страв,
+ * а також логіку використання інгредієнтів зі складу.
+ */
 @Service
 public class DishService {
 private final DishRepository dishRepository;
@@ -25,6 +30,14 @@ private final DishRepository dishRepository;
     private final IngredientStockRepository ingredientStockRepository;
     private IngredientRepository ingredientRepository;
 
+    /**
+     * Конструктор з впровадженням залежностей.
+     *
+     * @param dishRepository              репозиторій страв
+     * @param categoryRepository          репозиторій категорій
+     * @param ingredientRepository        репозиторій інгредієнтів
+     * @param ingredientStockRepository   репозиторій складу інгредієнтів
+     */
     @Autowired
     public DishService(DishRepository dishRepository, CategoryRepository categoryRepository, IngredientRepository ingredientRepository, IngredientStockRepository ingredientStockRepository) {
         this.dishRepository = dishRepository;
@@ -33,23 +46,35 @@ private final DishRepository dishRepository;
         this.ingredientRepository = ingredientRepository;
     }
 
+    /**
+     * Отримує всі страви.
+     *
+     * @return список усіх страв
+     */
     public List<Dish> getAllDishes() {
         return dishRepository.findAll();
     }
 
+    /**
+     * Отримує сторінку страв.
+     *
+     * @param pageRequest параметри пагінації
+     * @return сторінка страв
+     */
     public Page<Dish> getAllDishes(PageRequest pageRequest) {
         return dishRepository.findAll(pageRequest);
     }
 
 
-//public Page<Dish> getDishesByCategory(Long categoryId, PageRequest pageRequest, Double minPrice, Double maxPrice, String sortOrder) {
-//    if (minPrice != null || maxPrice != null) {
-//        return dishRepository.findByCategoryIdAndPriceBetweenWithSort(categoryId, minPrice, maxPrice, sortOrder, pageRequest);
-//    } else {
-//        return dishRepository.findByCategoryId(categoryId, pageRequest);
-//    }
-//}
-// Оновлена версія для збереження сортування та фільтрування
+    /**
+     * Повертає страви певної категорії з можливим пошуком за назвою та сортуванням.
+     *
+     * @param categoryId ідентифікатор категорії
+     * @param pageRequest параметри пагінації
+     * @param sortOrder параметр сортування (asc/desc)
+     * @param name пошуковий рядок по назві страви
+     * @return сторінка страв
+     */
 public Page<Dish> getDishesByCategory(Long categoryId, PageRequest pageRequest, String sortOrder, String name) {
     if (sortOrder == null || sortOrder.isEmpty()) {
         // Якщо сортування не вказано, сортуємо за замовчуванням, якщо необхідно
@@ -64,29 +89,46 @@ public Page<Dish> getDishesByCategory(Long categoryId, PageRequest pageRequest, 
     }
 }
 
-    // Оновлене з фільтром по ціні
+    /**
+     * Отримує страви певної категорії з фільтрацією за ціною, пошуком по назві та сортуванням.
+     *
+     * @param categoryId ідентифікатор категорії
+     * @param pageRequest параметри пагінації
+     * @param minPrice мінімальна ціна
+     * @param maxPrice максимальна ціна
+     * @param sortOrder порядок сортування
+     * @param name назва для пошуку
+     * @return сторінка страв
+     */
     public Page<Dish> getDishesByCategoryWithPriceFilter(Long categoryId, PageRequest pageRequest, Double minPrice, Double maxPrice, String sortOrder, String name) {
         if (sortOrder == null || sortOrder.isEmpty()) {
-            // Якщо сортування не вказано, сортуємо за замовчуванням
             if (name != null && !name.isEmpty()) {
                 return dishRepository.findByCategoryIdAndNameContainingIgnoreCase(categoryId, name, pageRequest);
             } else {
                 return dishRepository.findByCategoryIdAndPriceBetween(categoryId, minPrice, maxPrice, pageRequest);
             }
         } else {
-            // Якщо сортування вказано
             return dishRepository.findByCategoryIdAndPriceBetweenWithSort(categoryId, minPrice, maxPrice, sortOrder, pageRequest);
         }
     }
 
-
-
-
+    /**
+     * Повертає страву за її ID.
+     *
+     * @param id ідентифікатор страви
+     * @return Optional зі стравою або порожній, якщо не знайдено
+     */
     public Optional<Dish> getDishById(Long id) {
         return dishRepository.findById(id);
     }
 
-
+    /**
+     * Створює нову страву з інгредієнтами та списує їх зі складу.
+     *
+     * @param request дані для створення страви
+     * @return створена страва
+     * @throws RuntimeException якщо інгредієнтів недостатньо або інші помилки
+     */
     public Dish createDish(DishCreateRequest request) {
         Dish dish = new Dish();
         dish.setName(request.getName());
@@ -134,7 +176,14 @@ public Page<Dish> getDishesByCategory(Long categoryId, PageRequest pageRequest, 
 
 
 
-
+    /**
+     * Оновлює наявну страву та її інгредієнти.
+     *
+     * @param id ідентифікатор страви
+     * @param request дані для оновлення
+     * @return оновлена страва
+     * @throws RuntimeException якщо страва або категорія не знайдені
+     */
     public Dish updateDish(Long id, DishUpdateRequest request) {
         return dishRepository.findById(id).map(existingDish -> {
             existingDish.setName(request.getName());
@@ -170,7 +219,13 @@ public Page<Dish> getDishesByCategory(Long categoryId, PageRequest pageRequest, 
         }).orElseThrow(() -> new RuntimeException("Dish not found"));
     }
 
-
+    /**
+     * Парсить числове значення з рядка кількості.
+     *
+     * @param quantityStr рядок кількості (наприклад, "200 г")
+     * @return числове значення
+     * @throws RuntimeException якщо не вдалося перетворити
+     */
     private int parseQuantity(String quantityStr) {
         try {
             return Integer.parseInt(quantityStr.replaceAll("[^0-9]", ""));
@@ -179,7 +234,12 @@ public Page<Dish> getDishesByCategory(Long categoryId, PageRequest pageRequest, 
         }
     }
 
-
+    /**
+     * Видаляє страву за її ID.
+     *
+     * @param id ідентифікатор страви
+     * @throws RuntimeException якщо страву не знайдено
+     */
     public void deleteDish(Long id) {
         if (dishRepository.existsById(id)) {
             dishRepository.deleteById(id);

@@ -6,6 +6,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+/**
+ * DTO для реєстрації нового користувача.
+ */
 @Data
 public class SignupRequest {
     @NotBlank(message = "Ім'я користувача не може бути порожнім")

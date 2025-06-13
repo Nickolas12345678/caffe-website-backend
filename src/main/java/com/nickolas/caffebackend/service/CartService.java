@@ -12,6 +12,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+/**
+ * Сервіс для керування кошиком користувача.
+ * Дозволяє додавати, оновлювати, видаляти страви з кошика,
+ * а також очищати весь кошик.
+ */
 @Service
 public class CartService {
     @Autowired
@@ -23,11 +28,26 @@ public class CartService {
     @Autowired
     private UserRepository userRepository;
 
+    /**
+     * Отримує кошик користувача за його email.
+     * Якщо кошик не існує, створюється новий.
+     *
+     * @param email електронна пошта користувача
+     * @return об'єкт {@link Cart}
+     */
     public Cart getCartByUserEmail(String email) {
         return cartRepository.findByUserEmail(email)
                 .orElseGet(() -> createCartForUser(email));
     }
 
+
+    /**
+     * Створює новий кошик для користувача.
+     *
+     * @param email електронна пошта користувача
+     * @return створений об'єкт {@link Cart}
+     * @throws RuntimeException якщо користувача не знайдено
+     */
     private Cart createCartForUser(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -36,6 +56,16 @@ public class CartService {
         return cartRepository.save(cart);
     }
 
+    /**
+     * Додає страву до кошика користувача або збільшує кількість,
+     * якщо страва вже є в кошику.
+     *
+     * @param email електронна пошта користувача
+     * @param dishId ідентифікатор страви
+     * @param quantity кількість
+     * @return оновлений об'єкт {@link Cart}
+     * @throws RuntimeException якщо страву не знайдено
+     */
     // Додавання страви до кошика
     public Cart addDishToCart(String email, Long dishId, int quantity) {
         Cart cart = getCartByUserEmail(email);
@@ -60,6 +90,14 @@ public class CartService {
         return cartRepository.save(cart);
     }
 
+    /**
+     * Оновлює кількість певної страви в кошику користувача.
+     *
+     * @param email електронна пошта користувача
+     * @param dishId ідентифікатор страви
+     * @param quantity нова кількість
+     * @return оновлений об'єкт {@link Cart}
+     */
     public Cart updateDishQuantity(String email, Long dishId, int quantity) {
         Cart cart = getCartByUserEmail(email);
         cart.getItems().forEach(item -> {
@@ -70,12 +108,24 @@ public class CartService {
         return cartRepository.save(cart);
     }
 
+    /**
+     * Видаляє певну страву з кошика користувача.
+     *
+     * @param email електронна пошта користувача
+     * @param dishId ідентифікатор страви
+     * @return оновлений об'єкт {@link Cart}
+     */
     public Cart removeDishFromCart(String email, Long dishId) {
         Cart cart = getCartByUserEmail(email);
         cart.getItems().removeIf(item -> item.getDish().getId().equals(dishId));
         return cartRepository.save(cart);
     }
 
+    /**
+     * Очищує весь кошик користувача.
+     *
+     * @param email електронна пошта користувача
+     */
     public void clearCart(String email) {
         Cart cart = getCartByUserEmail(email);
         cart.getItems().clear();

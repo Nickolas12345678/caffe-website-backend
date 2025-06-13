@@ -25,6 +25,10 @@ import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.util.List;
 
+/**
+ * Основна конфігурація безпеки Spring Security.
+ * Визначає доступ до URL, додає JWT фільтр, конфігурує CORS та аутентифікацію.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity

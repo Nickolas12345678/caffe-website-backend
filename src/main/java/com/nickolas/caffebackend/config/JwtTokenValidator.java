@@ -18,6 +18,10 @@ import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * Фільтр для перевірки JWT токенів у кожному запиті.
+ * Якщо токен дійсний, встановлює аутентифікацію у SecurityContext.
+ */
 @Component
 public class JwtTokenValidator extends OncePerRequestFilter {
     private final SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());

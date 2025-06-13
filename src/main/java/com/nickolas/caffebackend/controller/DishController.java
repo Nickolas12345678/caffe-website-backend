@@ -16,16 +16,32 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * REST-контролер для керування стравами у кафе.
+ * Надає ендпоінти для отримання, створення, оновлення, видалення та фільтрації страв.
+ */
 @RestController
 @RequestMapping("/api/dishes")
 public class DishController {
     private final DishService dishService;
 
+    /**
+     * Конструктор для автоматичного впровадження сервісу страв.
+     *
+     * @param dishService сервіс для роботи зі стравами
+     */
     @Autowired
     public DishController(DishService dishService) {
         this.dishService = dishService;
     }
 
+    /**
+     * Отримати сторінку всіх страв.
+     *
+     * @param page номер сторінки (за замовчуванням 0)
+     * @param size розмір сторінки (за замовчуванням 10)
+     * @return сторінка страв
+     */
     @GetMapping
     public ResponseEntity<Page<Dish>> getAllDishes(@RequestParam(name = "page", defaultValue = "0") int page,
                                                    @RequestParam(name = "size", defaultValue = "10") int size) {
@@ -33,21 +49,18 @@ public class DishController {
         return ResponseEntity.ok(dishes);
     }
 
-
-//@GetMapping("/category/{categoryId}")
-//public ResponseEntity<Page<Dish>> getDishesByCategory(
-//        @PathVariable("categoryId") Long categoryId,
-//        @RequestParam(name = "page", defaultValue = "0") int page,
-//        @RequestParam(name = "size", defaultValue = "10") int size,
-//        @RequestParam(name = "minPrice", required = false) Double minPrice,
-//        @RequestParam(name = "maxPrice", required = false) Double maxPrice,
-//        @RequestParam(name = "sort", required = false, defaultValue = "asc") String sortOrder) {
-//
-//    PageRequest pageRequest = PageRequest.of(page, size);
-//    Page<Dish> dishes = dishService.getDishesByCategory(categoryId, pageRequest, minPrice, maxPrice, sortOrder);
-//
-//    return ResponseEntity.ok(dishes);
-//}
+    /**
+     * Отримати страви за категорією з можливістю фільтрації за ціною, назвою та сортуванням.
+     *
+     * @param categoryId ідентифікатор категорії
+     * @param page номер сторінки (за замовчуванням 0)
+     * @param size розмір сторінки (за замовчуванням 10)
+     * @param minPrice мінімальна ціна (необов’язково)
+     * @param maxPrice максимальна ціна (необов’язково)
+     * @param sortOrder параметр сортування (необов’язково)
+     * @param name назва для пошуку (необов’язково)
+     * @return сторінка страв, що відповідають фільтру
+     */
 @GetMapping("/category/{categoryId}")
 public ResponseEntity<Page<Dish>> getDishesByCategory(
         @PathVariable("categoryId") Long categoryId,
@@ -67,32 +80,46 @@ public ResponseEntity<Page<Dish>> getDishesByCategory(
 
     Page<Dish> dishes;
 
-    // Якщо є фільтр по ціні, застосовуємо його
     if (minPrice != null || maxPrice != null) {
         dishes = dishService.getDishesByCategoryWithPriceFilter(categoryId, pageRequest, minPrice, maxPrice, sortOrder, name);
     } else {
-        // Якщо немає фільтру по ціні, просто повертаємо страви без фільтрації за ціною
         dishes = dishService.getDishesByCategory(categoryId, pageRequest, sortOrder, name);
     }
 
     return ResponseEntity.ok(dishes);
 }
 
-
-
-
+    /**
+     * Отримати страву за її ідентифікатором.
+     *
+     * @param id ідентифікатор страви
+     * @return відповідь з об’єктом страви або статус 404, якщо не знайдено
+     */
     @GetMapping("/{id}")
     public ResponseEntity<Dish> getDishById(@PathVariable("id") Long id) {
         Optional<Dish> dish = dishService.getDishById(id);
         return dish.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Створити нову страву.
+     *
+     * @param request запит на створення страви
+     * @return відповідь зі створеною стравою
+     */
     @PostMapping
     public ResponseEntity<Dish> createDish(@RequestBody DishCreateRequest request) {
         Dish createdDish = dishService.createDish(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdDish);
     }
 
+    /**
+     * Оновити існуючу страву за її ідентифікатором.
+     *
+     * @param id ідентифікатор страви
+     * @param request запит з новими даними страви
+     * @return відповідь з оновленою стравою або статус 404, якщо не знайдено
+     */
     @PutMapping("/{id}")
     public ResponseEntity<Dish> updateDish(@PathVariable("id") Long id, @RequestBody DishUpdateRequest request) {
         try {
@@ -103,6 +130,12 @@ public ResponseEntity<Page<Dish>> getDishesByCategory(
         }
     }
 
+    /**
+     * Видалити страву за її ідентифікатором.
+     *
+     * @param id ідентифікатор страви
+     * @return статус 204, якщо успішно, або 404, якщо не знайдено
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDish(@PathVariable("id") Long id) {
         try {
